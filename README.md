@@ -6,8 +6,8 @@ The app utilizes the pygame library for sound playback, allowing users to custom
 
 
 Added simple UI using the Tkinter library including the time for which the timer is set, and buttons for better control over the app.
-![timer_exe](https://github.com/VicChorn/timer-py/assets/153026489/20261839-b299-47eb-a5d2-24cfe2fc8dcc)
-According to timeit: average execution time: 0.08 seconds
+![timer_exe](https://github.com/VicChorn/timer-py/assets/153026489/20261839-b299-47eb-a5d2-24cfe2fc8dcc) 
+
 
 ## Features:
  - **Timer Input**: Users can set the timer duration by entering the desired time in minutes via the provided input field.
