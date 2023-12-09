@@ -24,6 +24,7 @@ According to timeit: average execution time: 0.08 seconds
 Copy & run code:
 ```bash
 python timer_app.py
+```
 
 ## Notes:
 Make sure to provide the correct path to your desired MP3 file for sound playback.
