@@ -1,32 +1,40 @@
+# TimerPy v2.0
 
-# Timer App with Sound Playback
+TimerPy is a simple timer application with a range of new features and an improved user interface.
+![ReleaseV20](https://github.com/VicChorn/timer-py/assets/153026489/848238f6-4193-4a79-bf59-1ebc35e3e541)
 
-This simple timer application, built using the Tkinter GUI toolkit in Python, provides users with a convenient way to set a timer and receive an audible alert when the countdown reaches zero. 
-The app utilizes the pygame library for sound playback, allowing users to customize the audio alert by providing a local path to an MP3 file.
+## Features
 
+- **Tkinter GUI Integration:** The application now features a graphical user interface built using Tkinter, providing a more user-friendly experience.
 
-Added simple UI using the Tkinter library including the time for which the timer is set, and buttons for better control over the app.
+- **Enhanced Functionality:** A visual representation of the timer countdown is now displayed using a progress bar, making it easier to track the remaining time.
 
-![timer_exe](https://github.com/VicChorn/timer-py/assets/153026489/20261839-b299-47eb-a5d2-24cfe2fc8dcc) 
+- **Improved Layout Management:** The layout has been refined using the grid geometry manager, ensuring consistent and aesthetically pleasing placement of elements.
 
+- **Drag-and-Drop Window Movement:** The application window is now draggable, allowing users to reposition it easily on their desktop.
 
-## Features:
- - **Timer Input**: Users can set the timer duration by entering the desired time in minutes via the provided input field.
+- **Transparent Window Option:** Set the transparency of the window to your preference for a personalized user experience.
 
- - **Sound Playback**: The app supports customizable sound alerts. The user needs to provide the local path to an MP3 media file manually. The sound will play when the timer reaches zero.
+- **Start, Stop, and Always on Top Buttons:** New control buttons for starting and stopping the timer, along with an option to keep the window always on top.
 
-## How to Use:
-1. Run the application.
-2. Enter the desired timer duration in minutes using the "Set Timer" button.
-3. Click the "Start Timer" button to initiate the countdown.
+## How to Use
+
+1. Enter the desired timer duration in minutes using the entry field.
+2. Click the "Start" button to initiate the timer countdown.
+3. Utilize the "Stop" button to halt the timer when needed.
+4. The "Always on Top" button ensures the timer window stays visible.
+
 ## Requirements:
 - Python with Tkinter and pygame libraries.
-## Usage:
-Copy & run code:
+
+## Installation
+
+1. Clone the repository to your local machine.
+git clone https://github.com/your-username/TimerExe.git
+3. Run code:
 ```bash
 python timer_app.py
 ```
-
 ## Notes:
 Make sure to provide the correct path to your desired MP3 file for sound playback.
 The app displays the remaining seconds during the countdown in the console.
