@@ -63,6 +63,7 @@ def click_stop():
     global current_state, current_timer
     current_state = False
     root.after(0, recreate_entry)
+    pygame.mixer.music.stop()
 
 def recreate_entry():
     entry.grid(row=2, column=3, sticky="nesw")
@@ -71,13 +72,18 @@ def always_on_top():
     root.attributes("-topmost", 1)
     root.update_idletasks()
 
-def on_drag_start(event):
-    global start_x, start_y
-    start_x = event.x_root - root.winfo_rootx()
-    start_y = event.y_root - root.winfo_rooty()
+#Window drag function
+lastClickX = 0
+lastClickY = 0
 
-def on_drag_motion(event):
-    root.geometry(f"+{event.x_root - start_x}+{event.y_root - start_y}")
+def SaveLastClickPos(event):
+    global lastClickX, lastClickY
+    lastClickX = event.x
+    lastClickY = event.y
+
+def Dragging(event):
+    x, y = event.x - lastClickX + root.winfo_x(), event.y - lastClickY + root.winfo_y()
+    root.geometry(f"+{x}+{y}")
 
 root = tk.Tk()
 root.title("Timer")
@@ -109,7 +115,9 @@ aot_button.grid(row=2, column=2, sticky="nesw")
 counter_label.grid(row=0, column=0, columnspan=4, sticky="nesw")
 
 root.attributes('-alpha', 0.5)
-root.bind("<ButtonPress-1>", on_drag_start)
-root.bind("<B1-Motion>", on_drag_motion)
+
+root.overrideredirect(True)
+root.bind('<Button-1>', SaveLastClickPos)
+root.bind('<B1-Motion>', Dragging)
 
 root.mainloop()
