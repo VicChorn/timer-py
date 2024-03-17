@@ -4,3 +4,5 @@ build/
 .idea/
 .vscode/
 main.spec
+.gitignore
+.DS_Store
