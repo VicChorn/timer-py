@@ -1,0 +1,4 @@
+([('main',
+   '/Users/Victor/Documents/Download/Install/Python/My '
+   'Scripts/timer-py/dist/main',
+   'EXECUTABLE')],)
