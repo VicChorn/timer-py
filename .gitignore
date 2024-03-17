@@ -4,5 +4,5 @@ build/
 .idea/
 .vscode/
 main.spec
+.DS_Store/
 .gitignore
-.DS_Store
