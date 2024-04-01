@@ -2,6 +2,7 @@
 
 TimerPy is a simple timer application with a range of new features and an improved user interface.
 ![MyTimer1_dur_cut](https://github.com/VicChorn/timer-py/assets/153026489/861454ff-c9d3-4f9e-949d-6473d836c878)
+
 ## Features
 
 - **Tkinter GUI Integration:** The application now features a graphical user interface built using Tkinter, providing a more user-friendly experience.
@@ -24,6 +25,10 @@ TimerPy is a simple timer application with a range of new features and an improv
 4. The "Always on Top" button ensures the timer window stays visible.
 
 ## Requirements:
+- Python with Tkinter and pygame libraries.
+
+## Installation
+
 - Python with Tkinter and pygame libraries (for using repository code).
 
 ## Installation
@@ -40,6 +45,4 @@ git clone https://github.com/your-username/TimerExe.git
 python timer_app.py
 ```
 ## Notes:
-For advanced users, the application can be customized further by modifying the source code.
-Make sure to provide the correct path to your desired MP3 file for sound playback.
 
