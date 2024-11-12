@@ -1,21 +1,20 @@
-# TimerPy v2.0
+# TimerPy v2.2
 
 TimerPy is a simple timer application with a range of new features and an improved user interface.
-![ReleaseV20](https://github.com/VicChorn/timer-py/assets/153026489/848238f6-4193-4a79-bf59-1ebc35e3e541)
-
+![MyTimer1_dur_cut](https://github.com/VicChorn/timer-py/assets/153026489/861454ff-c9d3-4f9e-949d-6473d836c878)
 ## Features
 
 - **Tkinter GUI Integration:** The application now features a graphical user interface built using Tkinter, providing a more user-friendly experience.
 
 - **Enhanced Functionality:** A visual representation of the timer countdown is now displayed using a progress bar, making it easier to track the remaining time.
 
-- **Improved Layout Management:** The layout has been refined using the grid geometry manager, ensuring consistent and aesthetically pleasing placement of elements.
+- **Audio Integration:** Choose your favorite audio track to play when the timer ends.
+  
+- **Transparency Control:** Adjust the transparency of the timer window to your preference for a personalized user experience.
+  
+- **Always-on-Top Option:** Keep the timer window on top of all other windows for easy visibility.
 
-- **Drag-and-Drop Window Movement:** The application window is now draggable, allowing users to reposition it easily on their desktop.
-
-- **Transparent Window Option:** Set the transparency of the window to your preference for a personalized user experience.
-
-- **Start, Stop, and Always on Top Buttons:** New control buttons for starting and stopping the timer, along with an option to keep the window always on top.
+- **Start, Stop, and Always on Top Buttons:** Control buttons for starting and stopping the timer, along with an option to keep the window always on top.
 
 ## How to Use
 
@@ -25,10 +24,15 @@ TimerPy is a simple timer application with a range of new features and an improv
 4. The "Always on Top" button ensures the timer window stays visible.
 
 ## Requirements:
-- Python with Tkinter and pygame libraries.
+- Python with Tkinter and pygame libraries (for using repository code).
 
 ## Installation
+1. Download the TimerPlus.dmg file from the official website.
+2. Double-click the downloaded file to mount the disk image.
+3. Drag the TimerPlus icon to the Applications folder to install the application.
+4. Once installed, double-click the TimerPlus icon to launch the application.
 
+For using code:
 1. Clone the repository to your local machine.
 git clone https://github.com/your-username/TimerExe.git
 3. Run code:
@@ -36,5 +40,5 @@ git clone https://github.com/your-username/TimerExe.git
 python timer_app.py
 ```
 ## Notes:
+For advanced users, the application can be customized further by modifying the source code.
 Make sure to provide the correct path to your desired MP3 file for sound playback.
-The app displays the remaining seconds during the countdown in the console.
