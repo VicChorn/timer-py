@@ -366,5 +366,4 @@ except Exception as e:
 
 # Bind events
 root.bind('<Button-1>', SaveLastClickPos)
-## pupa
 root.mainloop()
