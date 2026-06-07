@@ -7,363 +7,363 @@ from tkinter import filedialog
 import json
 import sys
 from tkinter import messagebox
-import keyboard
 
-# Getting the application path
+# Getting the base application path for resources 
 def resource_path():
     if getattr(sys, 'frozen', False):
-        application_path = os.path.dirname(sys.executable)
-    else:
-        application_path = os.path.dirname(os.path.abspath(__file__))
-    return application_path
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
 
-# Updating paths to be relative to the application directory
-config_file_path = os.path.join(resource_path(), "config.txt")
-settings_file_path = os.path.join(resource_path(), "settings.json")
+CONFIG_FILE = os.path.join(resource_path(), "config.txt")
+SETTINGS_FILE = os.path.join(resource_path(), "settings.json")
+DEFAULT_SETTINGS = {"transparency": 0.2, "volume": 0.8}
 
-# Initialize pygame mixer with error handling
-try:
-    pygame.mixer.init()
-except pygame.error as e:
-    print(f"Failed to initialize pygame mixer: {e}")
-    messagebox.showerror("Error", f"Failed to initialize audio system: {e}")
+class TimerApp(tk.Tk):
 
-def load_settings():
-    try:
-        if os.path.exists(settings_file_path):
-            with open(settings_file_path, "r") as file:
-                return json.load(file)
-    except Exception as e:
-        print(f"Error loading settings: {e}")
-    return {"transparency": 0.2, "volume": 0.8}
+    def __init__(self):
+        super().__init__()
+        self.title("Timer")
+        self.geometry("180x70")
 
-def save_settings(settings):
-    try:
-        settings_dir = os.path.dirname(settings_file_path)
-        if not os.path.exists(settings_dir):
-            os.makedirs(settings_dir)
-        with open(settings_file_path, "w") as file:
-            json.dump(settings, file)
-    except Exception as e:
-        print(f"Error saving settings: {e}")
-        messagebox.showerror("Error", f"Failed to save settings: {e}")
+        self._current_state = False   # True when timer is counting down
+        self._current_timer = None    # ID returned by self.after()
+        self._on_top = False          # Current always-on-top state
+        self._options_window = None   # Reference to the options Toplevel
+        self._audio_file_path = None  # Path to the alarm MP3
+        self._save_job = None         # Debounce job ID for settings write
 
-#Function to load audio file path from config file
-def load_audio_file():
-    try:
-        if os.path.exists(config_file_path):
-            with open(config_file_path, "r") as file:
-                return file.readline().strip()
-    except Exception as e:
-        print(f"Error loading audio file: {e}")
-    return None
+        # Settings are loaded once into memory; updated in-place and get written only when slider stop moving
+        self._settings = self._load_settings()
 
-def save_audio_file(audio_file_path):
-    try:
-        config_dir = os.path.dirname(config_file_path)
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
-        with open(config_file_path, "w") as file:
-            file.write(audio_file_path)
-    except Exception as e:
-        print(f"Error saving audio file path: {e}")
-        messagebox.showerror("Error", f"Failed to save audio file path: {e}")
+        # Initialize pygame mixer with error handling
+        self._pygame_ok = False
+        try:
+            pygame.mixer.init()
+            self._pygame_ok = True
+        except pygame.error as e:
+            print(f"Pygame mixer init failed: {e}")
+        
+        self._build_ui()
+        self._apply_initial_settings()
 
-#Load and initialize audio
-audio_file_path = load_audio_file()
-try:
-    if audio_file_path and os.path.exists(audio_file_path):
-        pygame.mixer.music.load(audio_file_path)
-    else:
-        audio_file_path = filedialog.askopenfilename(
+        self.after(100, self._setup_audio)
+    #Load and initialize audio
+    def _setup_audio(self):
+        if not self._pygame_ok:
+            messagebox.showerror("Error", "Audio system failed to initialize.")
+            return
+
+        saved = self._load_audio_path()
+        if saved and os.path.exists(saved):
+            self._load_audio(saved)
+        else:
+            self._prompt_audio_file()
+
+    def _load_audio(self, path):
+        try:
+            pygame.mixer.music.load(path)
+            self._audio_file_path = path
+        except Exception as e:
+            print(f"Error loading audio: {e}")
+            messagebox.showerror("Error", f"Failed to load audio file: {e}")
+
+    def _prompt_audio_file(self):
+        path = filedialog.askopenfilename(
             title="Select an Audio File",
             filetypes=[("MP3 Files", "*.mp3")]
         )
-        if audio_file_path:
-            pygame.mixer.music.load(audio_file_path)
-            save_audio_file(audio_file_path)
+        if path:
+            self._load_audio(path)
+            self._save_audio_path(path)
         else:
-            print("No audio file selected.")
-            messagebox.showwarning("Warning", "No audio file selected. Some features may not work.")
-except Exception as e:
-    print(f"Error loading audio file: {e}")
-    messagebox.showerror("Error", f"Failed to load audio file: {e}")
+            messagebox.showwarning(
+                "Warning",
+                "No audio file selected. Timer sound won't play."
+            )
 
-pygame.mixer.music.set_volume(0.8)
+    def _load_audio_path(self):
+        try:
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, "r") as f:
+                    return f.readline().strip() or None
+        except Exception as e:
+            print(f"Error reading config: {e}")
+        return None
+    # Load selected audio file into pygame
+    def _save_audio_path(self, path):
+        try:
+            os.makedirs(os.path.dirname(CONFIG_FILE) or ".", exist_ok=True)
+            with open(CONFIG_FILE, "w") as f:
+                f.write(path)
+        except Exception as e:
+            print(f"Error saving config: {e}")
+            messagebox.showerror("Error", f"Failed to save audio path: {e}")
 
-try:
-    if audio_file_path:
-        length_in_s = int(pygame.mixer.Sound(audio_file_path).get_length())
-        length_in_ms = length_in_s * 1000
-        print(f"Song length in seconds: {length_in_s}")
-except Exception as e:
-    length_in_s = 0
-    print(f"Could not load song length: {e}")
+    #Load saved settings from json file
+    def _load_settings(self):
+        try:
+            if os.path.exists(SETTINGS_FILE):
+                with open(SETTINGS_FILE, "r") as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"Error loading settings: {e}")
+        return dict(DEFAULT_SETTINGS)
+    
+    # Saving current settings to disk
+    def _save_settings(self):
+        try:
+            os.makedirs(os.path.dirname(SETTINGS_FILE) or ".", exist_ok=True)
+            with open(SETTINGS_FILE, "w") as f:
+                json.dump(self._settings, f)
+        except Exception as e:
+            print(f"Error saving settings: {e}")
 
-# Global variables
-current_state = False
-current_timer = None
-start_x, start_y = 0, 0
+    # Delaying saving whle user is moving sliders
+    def _schedule_save(self):
+        if self._save_job:
+            self.after_cancel(self._save_job)
+        self._save_job = self.after(500, self._save_settings)
 
-def timer(seconds):
-    global current_state, current_timer
+    def _apply_initial_settings(self):
+        try:
+            self.attributes('-alpha', 1.2 - self._settings["transparency"])
+            if self._pygame_ok:
+                pygame.mixer.music.set_volume(self._settings["volume"])
+        except Exception as e:
+            print(f"Error applying initial settings: {e}")
+    # Create UI elements
+    def _build_ui(self):
+        self.rowconfigure([0, 1, 2], minsize=10, weight=1)
+        self.columnconfigure([0, 1, 2, 3], minsize=10, weight=1)
 
-    if current_state and seconds > 0:
-        seconds -= 1
-        converted_time = time_display_converter(seconds)
-        counter_label.config(text=f"{converted_time}")
-        progress_var.set(seconds)
-        current_timer = root.after(1000, timer, seconds)
-    elif seconds == 0:
+        vcmd = (self.register(self._validate_input), '%S')
+
+        # Input field (minutes)
+        self._entry = tk.Entry(
+            self, bg="#008000", width=3,
+            validate="key", validatecommand=vcmd
+        )
+        self._entry.grid(row=2, column=3, sticky="nesw")
+
+        # Progress bar
+        self._progress_var = tk.IntVar()
+        style = ttk.Style()
+        style.theme_use('default')
+        style.configure(
+            "Custom.Horizontal.TProgressbar",
+            troughcolor='#c0c0c0', background='#14b009', thickness=20
+        )
+        self._progress_bar = ttk.Progressbar(
+            self, variable=self._progress_var, maximum=60,
+            style="Custom.Horizontal.TProgressbar"
+        )
+        self._progress_bar.grid(row=1, column=0, columnspan=4, sticky="nesw")
+
+        # Counter label
+        self._counter_label = tk.Label(self, text="Set timer to start")
+        self._counter_label.grid(row=0, column=0, columnspan=4, sticky="nesw")
+
+        # Buttons
+        tk.Button(self, text="Start", command=self._click_start).grid(
+            row=2, column=0, sticky="nesw")
+        tk.Button(self, text="Stop", command=self._click_stop).grid(
+            row=2, column=1, sticky="nesw")
+
+        self._aot_button = tk.Button(self, text="→", command=self._toggle_on_top)
+        self._aot_button.grid(row=2, column=2, sticky="nesw")
+
+        tk.Button(self, text="⚙️", command=self._show_options).grid(
+            row=0, column=3, sticky="nesw")
+
+    def _validate_input(self, char):
+        """Allow only digit characters in the entry field."""
+        return char.isdigit()
+
+    def _tick(self, seconds):
+        if self._current_state and seconds > 0:
+            seconds -= 1
+            self._counter_label.config(text=self._format_time(seconds))
+            self._progress_var.set(seconds)
+            self._current_timer = self.after(1000, self._tick, seconds)
+        elif seconds == 0:
+            self._on_time_up()
+        else:
+            # Timer was stopped externally
+            self._show_entry()
+
+    # Called when countdown reaches zero
+    def _on_time_up(self):
+        self._progress_var.set(0)
+        self._show_entry()
+        if not self._pygame_ok or not self._audio_file_path:
+            return
         try:
             pygame.mixer.music.play(start=0.0)
         except Exception as e:
             print(f"Error playing sound: {e}")
             messagebox.showerror("Error", f"Failed to play sound: {e}")
-        print("Time is up")
-        progress_var.set(0)
-        entry.grid(row=2, column=3, sticky="nesw")
-    else:
-        print("Timer stopped")
-        progress_var.set(0)
-        entry.grid(row=2, column=3, sticky="nesw")
 
-def time_display_converter(seconds):
-    hours = seconds // 3600
-    minutes = (seconds % 3600) // 60
-    seconds = seconds % 60
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-
-def click_start():
-    global current_state, current_timer
-
-    try:
-        # Function for checking if a timer is already running-stop it
-        if current_timer is not None:
-            root.after_cancel(current_timer)
-            current_state = False
-            pygame.mixer.music.stop()
-
-        current_state = True
-        seconds = int(entry.get()) * 60
-        progress_var.set(seconds)
-        progress_bar.config(maximum=seconds)
-        entry.grid_forget()
-        timer(seconds)
-    except Exception as e:
-        print(f"Error starting timer: {e}")
-        messagebox.showerror("Error", f"Failed to start timer: {e}")
-
-def click_stop():
-    global current_state, current_timer
-    try:
-        current_state = False
-        if current_timer is not None:
-            root.after_cancel(current_timer)
-        root.after(0, recreate_entry)
-        pygame.mixer.music.stop()
-    except Exception as e:
-        print(f"Error stopping timer: {e}")
-        messagebox.showerror("Error", f"Failed to stop timer: {e}")
-
-def recreate_entry():
-    entry.grid(row=2, column=3, sticky="nesw")
-
-def always_on_top():
-    root.attributes("-topmost", 1)
-    root.update_idletasks()
-
-# Window drag function
-lastClickX = 0
-lastClickY = 0
-
-def SaveLastClickPos(event):
-    global lastClickX, lastClickY
-    lastClickX = event.x
-    lastClickY = event.y
-
-# Create main window
-root = tk.Tk()
-root.title("Timer")
-root.geometry("180x70")
-
-def on_validate(text):
-    if text.isdigit() or text == "":
-        return True
-    return False
-
-# Create UI elements
-entry = tk.Entry(root, bg="#008000", width=3, validate="key")
-entry['validatecommand'] = (entry.register(on_validate), '%S')
-entry.grid(row=2, column=3, sticky="nesw")
-
-progress_var = tk.IntVar()
-style = ttk.Style()
-style.theme_use('default')
-style.configure("Custom.Horizontal.TProgressbar", 
-                troughcolor='#c0c0c0', 
-                background='#14b009', 
-                thickness=20)
-
-progress_bar = ttk.Progressbar(root, 
-                              variable=progress_var, 
-                              maximum=60, 
-                              style="Custom.Horizontal.TProgressbar")
-progress_bar.grid(row=1, column=0, columnspan=4, sticky="nesw")
-
-options_window = None
-
-def update_transparency(value):
-    try:
-        inverted_value = 1.2 - float(value)
-        root.attributes('-alpha', inverted_value)
-        if options_window:
-            options_window.attributes('-alpha', inverted_value)
-        settings = load_settings()
-        settings["transparency"] = float(value)
-        save_settings(settings)
-    except Exception as e:
-        print(f"Error updating transparency: {e}")
-        messagebox.showerror("Error", f"Failed to update transparency: {e}")
-
-def update_volume(value):
-    try:
-        volume = float(value)
-        pygame.mixer.music.set_volume(volume)
-        settings = load_settings()
-        settings["volume"] = volume
-        save_settings(settings)
-    except Exception as e:
-        print(f"Error updating volume: {e}")
-        messagebox.showerror("Error", f"Failed to update volume: {e}")
-
-def show_options():
-    global options_window
+    # Converting seconds into HH:MM:SS format
+    def _format_time(self, seconds):
+        h, remainder = divmod(seconds, 3600)
+        m, s = divmod(remainder, 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
     
-    try:
-        # Coordinates of current position of the main window
-        x = root.winfo_x()
-        y = root.winfo_y()
-        
-        options_window = tk.Toplevel(root)
-        options_window.title("Options")
-        options_window.geometry("250x160")
-        
-        # Position the options window at the same coordinates as the main window
-        options_window.geometry(f"+{x}+{y}")
+    # Starting countdown using entered minutes
+    def _click_start(self):
+        raw = self._entry.get().strip()
+        if not raw:
+            messagebox.showwarning(
+                "Input required",
+                "Please enter the number of minutes."
+            )
+            return
 
-        settings = load_settings()
+        try:
+            # Cancel any running timer before starting a new one
+            if self._current_timer is not None:
+                self.after_cancel(self._current_timer)
+                if self._pygame_ok:
+                    pygame.mixer.music.stop()
 
-        transparency_frame = tk.Frame(options_window)
-        transparency_frame.pack(pady=0)
+            self._current_state = True
+            seconds = int(raw) * 60
+            self._progress_var.set(seconds)
+            self._progress_bar.config(maximum=seconds)
+            self._entry.grid_forget()
+            self._tick(seconds)
+        except Exception as e:
+            print(f"Error starting timer: {e}")
+            messagebox.showerror("Error", f"Failed to start timer: {e}")
 
-        label = tk.Label(transparency_frame, text="Transparency:")
-        label.pack(side="left", padx=(10, 5), pady=(5,0))
-        
-        style = ttk.Style()
-        style.theme_use('aqua')
-        style.configure('Custom.Horizontal.TScale', 
-                       troughcolor='#c0c0c0', 
-                       background='#14b009', 
-                       thickness=20)
+    # Stops current timer and reset UI
+    def _click_stop(self):
+        try:
+            self._current_state = False
+            if self._current_timer is not None:
+                self.after_cancel(self._current_timer)
+                self._current_timer = None
+            if self._pygame_ok:
+                pygame.mixer.music.stop()
+            self.after(0, self._show_entry)
+        except Exception as e:
+            print(f"Error stopping timer: {e}")
+            messagebox.showerror("Error", f"Failed to stop timer: {e}")
 
-        transparency_slider = ttk.Scale(
-            transparency_frame, 
-            from_=0.2, 
-            to=1, 
-            command=update_transparency, 
-            orient="horizontal", 
-            style="Custom.Horizontal.TScale"
+    def _show_entry(self):
+        self._entry.grid(row=2, column=3, sticky="nesw")
+
+    # Enabling/disabling always-on-top mode, now fully toggleable 
+    def _toggle_on_top(self):
+        """Toggle the always-on-top state and update the button label."""
+        self._on_top = not self._on_top
+        self.attributes("-topmost", self._on_top)
+        self._aot_button.config(text="✓→" if self._on_top else "→")
+
+    # Open settings window
+    def _show_options(self):
+        if self._options_window and self._options_window.winfo_exists():
+            self._options_window.lift()
+            return
+
+        x, y = self.winfo_x(), self.winfo_y()
+        win = tk.Toplevel(self)
+        win.title("Options")
+        win.geometry(f"250x160+{x}+{y}")
+        win.protocol("WM_DELETE_WINDOW", lambda: self._close_options(win))
+        self._options_window = win
+
+        opt_style = ttk.Style()
+        opt_style.theme_use('aqua')
+        opt_style.configure(
+            'Custom.Horizontal.TScale',
+            troughcolor='#c0c0c0', background='#14b009', thickness=20
         )
-        transparency_slider.pack(side="left", fill="x", expand=True, padx=(0, 10), pady=(5,0))
-        transparency_slider.set(settings["transparency"])
 
-        volume_frame = tk.Frame(options_window)
-        volume_frame.pack(pady=5)
-
-        volume_label = tk.Label(volume_frame, text="Volume:")
-        volume_label.pack(side="left", padx=(10, 5))
-
-        volume_slider = ttk.Scale(
-            volume_frame,
-            from_=0,
-            to=1,
-            command=update_volume,
-            orient="horizontal",
-            style="Custom.Horizontal.TScale"
+        # Transparency row
+        t_frame = tk.Frame(win)
+        t_frame.pack(pady=(5, 0))
+        tk.Label(t_frame, text="Transparency:").pack(side="left", padx=(10, 5))
+        t_slider = ttk.Scale(
+            t_frame, from_=0.2, to=1, orient="horizontal",
+            style="Custom.Horizontal.TScale",
+            command=self._update_transparency
         )
-        volume_slider.pack(side="left", fill="x", expand=True, padx=(0, 10))
-        volume_slider.set(settings["volume"])
+        t_slider.set(self._settings["transparency"])
+        t_slider.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
-        audio_frame = tk.Frame(options_window)
-        audio_frame.pack(pady=5)
-        label = tk.Label(audio_frame, text="Select an audio file:")
-        label.pack(side="left", padx=(10, 5))
+        # Volume row
+        v_frame = tk.Frame(win)
+        v_frame.pack(pady=5)
+        tk.Label(v_frame, text="Volume:").pack(side="left", padx=(10, 5))
+        v_slider = ttk.Scale(
+            v_frame, from_=0, to=1, orient="horizontal",
+            style="Custom.Horizontal.TScale",
+            command=self._update_volume
+        )
+        v_slider.set(self._settings["volume"])
+        v_slider.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
-        browse_button = tk.Button(audio_frame, text="Browse", command=select_audio_file)
-        browse_button.pack(side="left", padx=(0, 10), pady=(0,0))
+        # Audio file row
+        a_frame = tk.Frame(win)
+        a_frame.pack(pady=5)
+        tk.Label(a_frame, text="Audio file:").pack(side="left", padx=(10, 5))
+        tk.Button(
+            a_frame, text="Browse", command=self._select_audio_file
+        ).pack(side="left", padx=(0, 10))
 
-        back_button = tk.Button(options_window, text="Back", command=lambda: go_back(options_window))
-        back_button.pack(fill=tk.X, pady=(3, 0), padx=(30,30))
+        # Back button
+        tk.Button(
+            win, text="Back",
+            command=lambda: self._close_options(win)
+        ).pack(fill=tk.X, pady=(3, 0), padx=30)
 
-        root.withdraw()
-    except Exception as e:
-        print(f"Error showing options: {e}")
-        messagebox.showerror("Error", f"Failed to show options window: {e}")
+        self.withdraw()
 
-def select_audio_file():
-    global audio_file_path
-    try:
-        file_path = filedialog.askopenfilename(
-            title="Select Audio File", 
+    # Updating window transparency and saving setting
+    def _update_transparency(self, value):
+        try:
+            alpha = 1.2 - float(value)
+            self.attributes('-alpha', alpha)
+            if self._options_window and self._options_window.winfo_exists():
+                self._options_window.attributes('-alpha', alpha)
+            self._settings["transparency"] = float(value)
+            self._schedule_save()
+        except Exception as e:
+            print(f"Error updating transparency: {e}")
+
+    # Updating alarm volume and saving setting
+    def _update_volume(self, value):
+        try:
+            vol = float(value)
+            if self._pygame_ok:
+                pygame.mixer.music.set_volume(vol)
+            self._settings["volume"] = vol
+            self._schedule_save()
+        except Exception as e:
+            print(f"Error updating volume: {e}")
+
+    # Let user choose a new alarm sound
+    def _select_audio_file(self):
+        path = filedialog.askopenfilename(
+            title="Select Audio File",
             filetypes=[("MP3 Files", "*.mp3")]
         )
-        if file_path:
-            audio_file_path = file_path
-            pygame.mixer.music.load(audio_file_path)
-            save_audio_file(audio_file_path)
-    except Exception as e:
-        print(f"Error selecting audio file: {e}")
-        messagebox.showerror("Error", f"Failed to select audio file: {e}")
+        if path:
+            self._load_audio(path)
+            self._save_audio_path(path)
 
-def go_back(window):
-    try:
-        window.destroy()
-        root.deiconify()
-        style.theme_use('default')
-    except Exception as e:
-        print(f"Error closing options window: {e}")
-        messagebox.showerror("Error", f"Failed to close options window: {e}")
+    def _close_options(self, window):
+        try:
+            window.destroy()
+            self._options_window = None
+            self.deiconify()
+            # Restore the style used by the main window
+            ttk.Style().theme_use('default')
+        except Exception as e:
+            print(f"Error closing options: {e}")
 
-# Create buttons and widgets
-start_button = tk.Button(root, text="Start", command=click_start)
-stop_button = tk.Button(root, text="Stop", command=click_stop)
-aot_button = tk.Button(root, text="->", command=always_on_top)
-counter_label = tk.Label(root, text="Set timer to start")
-options_button = tk.Button(root, text="⚙️", command=show_options)
-
-# Configure grid
-root.rowconfigure([0, 1, 2], minsize=10, weight=1)
-root.columnconfigure([0, 1, 2, 3], minsize=10, weight=1)
-
-# Place widgets in grid
-entry.grid(row=2, column=3, sticky="nesw")
-progress_bar.grid(row=1, column=0, columnspan=4, sticky="nesw")
-stop_button.grid(row=2, column=1, sticky="nesw")
-start_button.grid(row=2, column=0, sticky="nesw")
-aot_button.grid(row=2, column=2, sticky="nesw")
-counter_label.grid(row=0, column=0, columnspan=4, sticky="nesw")
-options_button.grid(row=0, column=3, sticky="nesw")
-
-# Load initial settings
-try:
-    initial_settings = load_settings()
-    root.attributes('-alpha', 1.2 - initial_settings["transparency"])
-    pygame.mixer.music.set_volume(initial_settings["volume"])
-except Exception as e:
-    print(f"Error loading initial settings: {e}")
-    messagebox.showerror("Error", f"Failed to load initial settings: {e}")
-
-# Bind events
-root.bind('<Button-1>', SaveLastClickPos)
-root.mainloop()
+# Application entry point
+if __name__ == "__main__":
+    app = TimerApp()
+    app.mainloop()
