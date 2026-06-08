@@ -1,4 +1,4 @@
-# TimerPy v2.3
+# TimerPy v2.4
 
 TimerPy is a customizable countdown timer application with audio playback, transparency, and volume control. It’s designed to run efficiently and offer an intuitive GUI for easy use.
 
